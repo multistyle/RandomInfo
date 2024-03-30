@@ -91,7 +91,7 @@
             this.lbDate = new System.Windows.Forms.Label();
             this.numCreatedDate = new System.Windows.Forms.NumericUpDown();
             this.label24 = new System.Windows.Forms.Label();
-            this.checkBox1 = new System.Windows.Forms.CheckBox();
+            this.checkAppendPhone = new System.Windows.Forms.CheckBox();
             this.label22 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.numGenData)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numStartRow)).BeginInit();
@@ -559,7 +559,7 @@
             // 
             // tabPage2
             // 
-            this.tabPage2.Controls.Add(this.checkBox1);
+            this.tabPage2.Controls.Add(this.checkAppendPhone);
             this.tabPage2.Controls.Add(this.label22);
             this.tabPage2.Controls.Add(this.numCreatedDate);
             this.tabPage2.Controls.Add(this.label24);
@@ -780,7 +780,7 @@
             this.numColPhoneNumber.TabIndex = 45;
             this.numColPhoneNumber.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.numColPhoneNumber.Value = new decimal(new int[] {
-            4,
+            3,
             0,
             0,
             0});
@@ -842,15 +842,17 @@
             this.label24.Text = "Ngày tạo";
             this.label24.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
-            // checkBox1
+            // checkAppendPhone
             // 
-            this.checkBox1.AutoSize = true;
-            this.checkBox1.Location = new System.Drawing.Point(497, 522);
-            this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(159, 17);
-            this.checkBox1.TabIndex = 55;
-            this.checkBox1.Text = "Chỉ cập nhật số chưa tồn tại";
-            this.checkBox1.UseVisualStyleBackColor = true;
+            this.checkAppendPhone.AutoSize = true;
+            this.checkAppendPhone.Checked = true;
+            this.checkAppendPhone.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.checkAppendPhone.Location = new System.Drawing.Point(497, 522);
+            this.checkAppendPhone.Name = "checkAppendPhone";
+            this.checkAppendPhone.Size = new System.Drawing.Size(159, 17);
+            this.checkAppendPhone.TabIndex = 55;
+            this.checkAppendPhone.Text = "Chỉ cập nhật số chưa tồn tại";
+            this.checkAppendPhone.UseVisualStyleBackColor = true;
             // 
             // label22
             // 
@@ -954,7 +956,7 @@
         private System.Windows.Forms.Label lbDate;
         private System.Windows.Forms.NumericUpDown numCreatedDate;
         private System.Windows.Forms.Label label24;
-        private System.Windows.Forms.CheckBox checkBox1;
+        private System.Windows.Forms.CheckBox checkAppendPhone;
         private System.Windows.Forms.Label label22;
     }
 }
