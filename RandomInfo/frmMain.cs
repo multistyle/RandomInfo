@@ -2,18 +2,23 @@
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
+using System.Xml.Linq;
+using static Google.Apis.Requests.BatchRequest;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using Color = System.Drawing.Color;
 
 
 namespace RandomInfo
 {
-    public partial class frmMain : Form
+    public partial class Main : Form
     {
-        public frmMain()
+        public Main()
         {
             InitializeComponent();
         }
@@ -35,11 +40,11 @@ namespace RandomInfo
 
             // Thêm cột vào ListView
             lvData.Columns.Add("STT").Width = 50;
-            lvData.Columns.Add("Số điện thoại").Width = 200;
-            lvData.Columns.Add("Họ").Width = 150;
-            lvData.Columns.Add("Tên").Width = 150;
-            lvData.Columns.Add("ID").Width = 200;
-            lvData.Columns.Add("Mật khẩu").Width = 150;
+            lvData.Columns.Add("Số điện thoại").Width = 150;
+            lvData.Columns.Add("Họ").Width = 100;
+            lvData.Columns.Add("Tên").Width = 100;
+            lvData.Columns.Add("ID").Width = 180;
+            lvData.Columns.Add("Mật khẩu").Width = 120;
 
             for (int i = 0; i < numGenData.Value; i++)
             {
@@ -61,50 +66,16 @@ namespace RandomInfo
             }
 
             // Đặt focus vào bản ghi đầu tiên
-            if (lvData.Items.Count > 0)
-            {
-                lvData.Items[0].Selected = true;
-                lvData.Items[0].Focused = true;
-                lvData.Focus();
-            }
-
+            cm.focusFirstRow(lvData);
 
             lvData.MouseClick += ListViewMouseClick;
         }
 
 
-
         private void ListViewMouseClick(object sender, MouseEventArgs e)
         {
-
-            // Lấy vị trí của cell được click
-            ListViewHitTestInfo hitTestInfo = lvData.HitTest(e.Location);
-            int columnIndex = hitTestInfo.Item.SubItems.IndexOf(hitTestInfo.SubItem);
-
-            if (columnIndex >= 0)
-            {
-                // Lấy ListViewItem được click
-                ListViewItem clickedItem = hitTestInfo.Item;
-
-                // Thay đổi màu sắc của cell được click
-                clickedItem.SubItems[columnIndex].BackColor = Color.Aqua;
-                clickedItem.SubItems[columnIndex].ForeColor = Color.Aqua;
-
-                var cell = clickedItem.SubItems[columnIndex];
-                if (cell != null)
-                {
-                    cell.ResetStyle();
-                    cell.ForeColor = Color.Aqua;
-                    cell.BackColor = Color.Aqua;
-                    if (!string.IsNullOrEmpty(cell.Text))
-                    {
-                        // Lấy nội dung của cell được click
-                        string cellContent = cell.Text;
-                        // Copy nội dung vào Clipboard
-                        Clipboard.SetText(cellContent);
-                    }
-                }
-            }
+            Common cm = new Common();
+            cm.ListViewMouseClick(lvData, e);
         }
 
         private void btnUpdate_Click(object sender, EventArgs e)
@@ -113,27 +84,10 @@ namespace RandomInfo
             {
                 if (lvData.CheckedItems.Count > 0)
                 {
-                    string fileName = "credentialsAuToData.json";
-                    string currentDirectory = Directory.GetCurrentDirectory();
-                    string credentialsPath = Path.Combine(currentDirectory, fileName);
-
-                    // Chuỗi phạm vi truy cập (scope)
-                    string[] scopes = { SheetsService.Scope.Spreadsheets };
-
-                    // Xác thực và tạo phiên làm việc
-                    var credential = GoogleCredential.FromFile(credentialsPath).CreateScoped(scopes);
-
-                    // Tạo dịch vụ Sheets API
-                    var service = new SheetsService(new BaseClientService.Initializer()
-                    {
-                        HttpClientInitializer = credential,
-                        ApplicationName = "AutoData"
-                    });
-
                     // ID của bảng tính và tên trang tính cần cập nhật
                     string spreadsheetId = txtSpreadsheetId.Text;
                     string sheetName = txtSheetName.Text;
-
+                    GoogleSheet gs = new GoogleSheet();
                     // Chuẩn bị dữ liệu cần cập nhật
                     List<ValueRange> data = new List<ValueRange>();
                     decimal rowIndex = numStartRow.Value;
@@ -141,10 +95,8 @@ namespace RandomInfo
                     if (numStartRow.Value == 0)
                     {
                         var rangeData = $"{sheetName}!A:Z";
-
                         // Lấy giá trị từ phạm vi được chỉ định
-                        var requestData = service.Spreadsheets.Values.Get(spreadsheetId, rangeData);
-                        var responseData = requestData.Execute();
+                        var responseData = gs.getData(spreadsheetId, sheetName, rangeData);
                         if (responseData != null && responseData.Values.Count > 0)
                         {
                             rowIndex = responseData.Values.Count + 1;
@@ -196,21 +148,11 @@ namespace RandomInfo
                         rowIndex++; // Tăng chỉ số hàng
                     }
 
-                    // Cập nhật dữ liệu
-                    BatchUpdateValuesRequest request = new BatchUpdateValuesRequest
-                    {
-                        Data = data,
-                        ValueInputOption = "RAW"
-                    };
-
-                    SpreadsheetsResource.ValuesResource.BatchUpdateRequest updateRequest =
-                        service.Spreadsheets.Values.BatchUpdate(request, spreadsheetId);
-
-                    BatchUpdateValuesResponse response = updateRequest.Execute();
+                    BatchUpdateValuesResponse response = gs.UpdateData(spreadsheetId, data);
 
                     AppSetting.UpdateAppSetting(sheetName + "StartRow", rowIndex.ToString());
 
-                    MessageBox.Show("Cập nhật thành công!", "Thành công rồi");
+                    MessageBox.Show("Vừa đẩy lên " + response.TotalUpdatedRows.ToString() + " bản ghi!", "Thành công rồi");
 
                 }
                 else
@@ -220,7 +162,7 @@ namespace RandomInfo
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message);
+                MessageBox.Show(ex.Message, "Lỗi cmnr");
             }
         }
 
@@ -238,7 +180,6 @@ namespace RandomInfo
             txtPass.Text = !string.IsNullOrEmpty(passDefault) ? passDefault : "12345678@Abc";
             txtSheetName.Text = !string.IsNullOrEmpty(sheetName) ? sheetName : "Data";
             numStartRow.Value = string.IsNullOrEmpty(startRow) ? 0 : int.Parse(startRow);
-
 
         }
 
@@ -261,6 +202,90 @@ namespace RandomInfo
         private void txtPass_TextChanged(object sender, EventArgs e)
         {
             AppSetting.UpdateAppSetting("PassDefault", txtPass.Text);
+        }
+
+        private void btnLoadDataFromExcel_Click(object sender, EventArgs e)
+        {
+            // ID của bảng tính và tên trang tính cần cập nhật
+            string spreadsheetId = txtLoadSheetID.Text;
+            string sheetName = txtLoadSheetName.Text;
+            var rangeData = $"{sheetName}!A:Z";
+            GoogleSheet gs = new GoogleSheet();
+            Common cm = new Common();
+
+            if (string.IsNullOrEmpty(spreadsheetId))
+            {
+                MessageBox.Show("Nhập Sheet ID đi đã", "Ẩu thế?");
+                return;
+            }
+            else if (string.IsNullOrEmpty(sheetName))
+            {
+                MessageBox.Show("Nhập Sheet Name đi đã", "Ẩu thế?");
+                return;
+            }
+
+            // Xóa tất cả cột
+            lvDataFromExcel.Columns.Clear();
+            // Xóa tất cả dữ liệu
+            lvDataFromExcel.Items.Clear();
+            lvDataFromExcel.CheckBoxes = true;
+            // Thiết lập kiểu xem của ListView (ví dụ: View.Details để hiển thị các cột)
+            lvDataFromExcel.View = View.Details;
+            lvDataFromExcel.FullRowSelect = true;
+            lvDataFromExcel.GridLines = true;
+
+            // Lấy giá trị từ phạm vi được chỉ định
+            var responseData = gs.getData(spreadsheetId, sheetName, rangeData);
+
+            if (responseData != null && responseData.Values.Count > 0)
+            {
+                var values = responseData.Values;
+
+                var listViewItems = new List<ListViewItem>();
+
+                // Lấy tên cột từ dòng đầu tiên
+                var headerRow = values[0];
+
+                for (int i = 0; i < headerRow.Count; i++)
+                {
+                    lvDataFromExcel.Columns.Add(headerRow[i].ToString());
+                }
+
+                // Lấy dữ liệu từ các dòng sau
+                for (int i = 1; i < values.Count; i++)
+                {
+                    var dataRow = values[i];
+                    var listViewItem = new ListViewItem();
+
+                    listViewItem.Text = dataRow[0].ToString();
+
+                    for (int j = 1; j < dataRow.Count; j++)
+                    {
+                        listViewItem.SubItems.Add(dataRow[j].ToString());
+                    }
+
+                    listViewItem.Checked = true;
+                    listViewItems.Add(listViewItem);
+                }
+
+                lvDataFromExcel.Items.AddRange(listViewItems.ToArray());
+
+                lvDataFromExcel.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
+
+                // Đặt focus vào bản ghi đầu tiên
+                cm.focusFirstRow(lvDataFromExcel);
+
+                lvDataFromExcel.MouseClick += ListViewLoadMouseClick;
+                
+                MessageBox.Show("Lấy được " + (responseData.Values.Count - 1).ToString() + " bản ghi", "Ngon rồi!");
+
+            }
+        }
+
+        private void ListViewLoadMouseClick(object sender, MouseEventArgs e)
+        {
+            Common cm = new Common();
+            cm.ListViewMouseClick(lvDataFromExcel, e);
         }
     }
 }

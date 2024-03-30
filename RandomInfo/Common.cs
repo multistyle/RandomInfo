@@ -2,7 +2,10 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Runtime.Caching;
+using System.Windows.Forms;
+using System.Xml.Linq;
 
 namespace RandomInfo
 {
@@ -364,6 +367,49 @@ namespace RandomInfo
             int day = random.Next(1, DateTime.DaysInMonth(year, month) + 1);
 
             return new DateTime(year, month, day);
+        }
+
+        public void focusFirstRow(ListView lv)
+        {
+            // Đặt focus vào bản ghi đầu tiên
+            if (lv.Items.Count > 0)
+            {
+                lv.Items[0].Selected = true;
+                lv.Items[0].Focused = true;
+                lv.Focus();
+            }
+        }
+
+        public void ListViewMouseClick(ListView lv, MouseEventArgs e)
+        {
+            // Lấy vị trí của cell được click
+            ListViewHitTestInfo hitTestInfo = lv.HitTest(e.Location);
+            int columnIndex = hitTestInfo.Item.SubItems.IndexOf(hitTestInfo.SubItem);
+
+            if (columnIndex >= 0)
+            {
+                // Lấy ListViewItem được click
+                ListViewItem clickedItem = hitTestInfo.Item;
+
+                // Thay đổi màu sắc của cell được click
+                clickedItem.SubItems[columnIndex].BackColor = Color.Aqua;
+                clickedItem.SubItems[columnIndex].ForeColor = Color.Aqua;
+
+                var cell = clickedItem.SubItems[columnIndex];
+                if (cell != null)
+                {
+                    cell.ResetStyle();
+                    cell.ForeColor = Color.Aqua;
+                    cell.BackColor = Color.Aqua;
+                    if (!string.IsNullOrEmpty(cell.Text))
+                    {
+                        // Lấy nội dung của cell được click
+                        string cellContent = cell.Text;
+                        // Copy nội dung vào Clipboard
+                        Clipboard.SetText(cellContent);
+                    }
+                }
+            }
         }
     }
 }
