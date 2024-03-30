@@ -12,13 +12,13 @@ namespace RandomInfo
     {
 
         // Khởi tạo bộ nhớ cache
-        public  MemoryCache cache = MemoryCache.Default;
-       public const string cacheFistKey = "ListFirstName";
-       public const string fistNamePath = "ListFirstName.txt";
-       public const string lastNamePath = "ListLastName.txt";
-       public const string cacheLastKey = "ListLastName";
-       public const string listPhoneDataFileName = "ListPhoneData.txt";
-       public const string keycachePhoneData = "ListPhoneData";
+        public MemoryCache cache = MemoryCache.Default;
+        public const string cacheFistKey = "ListFirstName";
+        public const string fistNamePath = "ListFirstName.txt";
+        public const string lastNamePath = "ListLastName.txt";
+        public const string cacheLastKey = "ListLastName";
+        public const string listPhoneDataFileName = "ListPhoneData.txt";
+        public const string keycachePhoneData = "ListPhoneData";
 
         DateTimeOffset cacheTime = DateTimeOffset.MaxValue;
 
@@ -70,6 +70,17 @@ namespace RandomInfo
 
         public bool checkValidPhone(string phone)
         {
+            List<string> listPhoneData = getListPhoneNumber();
+            if (listPhoneData != null && listPhoneData.Count > 0)
+            {
+                return !listPhoneData.Contains(phone);
+            }
+
+            return true;
+        }
+
+        public List<string> getListPhoneNumber(bool onlyGet = false)
+        {
             List<string> listPhoneData = new List<string>();
 
             listPhoneData = (List<string>)cache.Get(keycachePhoneData);
@@ -79,21 +90,32 @@ namespace RandomInfo
                 listPhoneData = ReadDataFromFile(getFilePath(listPhoneDataFileName));
                 // Lưu kết quả vào cache
                 // Kiểm tra nếu kết quả đã được lưu trong cache
-                if (cache.Contains(keycachePhoneData))
+                if (!onlyGet)
                 {
-                    cache.Set(keycachePhoneData, listPhoneData, cacheTime);
+                    if (cache.Contains(keycachePhoneData))
+                    {
+                        cache.Set(keycachePhoneData, listPhoneData, cacheTime);
+                    }
+                    else
+                    {
+                        cache.Add(keycachePhoneData, listPhoneData, cacheTime);
+                    }
                 }
-                else
-                {
-                    cache.Add(keycachePhoneData, listPhoneData, cacheTime);
-                }
-            }
-            if (listPhoneData != null && listPhoneData.Count > 0)
-            {
-                return !listPhoneData.Contains(phone);
             }
 
-            return true;
+            return listPhoneData;
+        }
+
+        public void updatePhoneData(List<string> listPhoneData, bool isAppend = true)
+        {
+            if (isAppend)
+            {
+                AppendAllLines(listPhoneData, getFilePath(listPhoneDataFileName));
+            }
+            else
+            {
+                WriteDataToFile(listPhoneData, getFilePath(listPhoneDataFileName));
+            }
         }
 
         public bool checkValidate(string spreadsheetId, string sheetName)
@@ -215,6 +237,11 @@ namespace RandomInfo
         {
             string content = string.Join(Environment.NewLine, data);
             File.WriteAllText(filePath, content);
+        }
+
+        public void AppendAllLines(List<string> data, string filePath)
+        {
+            File.AppendAllLines(filePath, data);
         }
 
         // Hàm đọc dữ liệu từ tệp tin văn bản và gán vào cache

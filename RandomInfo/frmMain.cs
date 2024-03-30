@@ -101,7 +101,7 @@ namespace RandomInfo
                         var rangeData = $"{sheetName}!A:Z";
                         // Lấy giá trị từ phạm vi được chỉ định
                         var responseData = gs.getData(spreadsheetId, sheetName, rangeData);
-                        if (responseData != null && responseData.Values.Count > 0)
+                        if (responseData != null && responseData.Values != null && responseData.Values.Count > 0)
                         {
                             rowIndex = responseData.Values.Count + 1;
                         }
@@ -156,7 +156,7 @@ namespace RandomInfo
 
                     setting.UpdateAppSetting(sheetName + "StartRow", rowIndex.ToString());
 
-                    MessageBox.Show("Vừa đẩy lên " + response.TotalUpdatedRows.ToString() + " bản ghi! Vào sheet: " + sheetName, "Thành công rồi");
+                    MessageBox.Show("Vừa đẩy lên " + response.TotalUpdatedRows.ToString() + " bản ghi! Vào sheet: " + sheetName, "Ngon rồi!");
                     // Xóa tất cả cột
                     lvDataFromExcel.Columns.Clear();
                     // Xóa tất cả dữ liệu
@@ -258,7 +258,7 @@ namespace RandomInfo
                 // Lấy giá trị từ phạm vi được chỉ định
                 var responseData = gs.getData(spreadsheetId, sheetName, rangeData);
 
-                if (responseData != null && responseData.Values.Count > 0)
+                if (responseData != null && responseData.Values != null && responseData.Values.Count > 0)
                 {
                     var values = responseData.Values;
                     var listViewItems = new List<ListViewItem>();
@@ -281,7 +281,7 @@ namespace RandomInfo
                     //}
 
                     // Lấy dữ liệu từ các dòng sau
-                    for (int i = 0; i < values.Count; i++)
+                    for (int i = values.Count - 1; i >= 0; i--)
                     {
                         var dataRow = values[i];
 
@@ -373,7 +373,46 @@ namespace RandomInfo
         private void btnUpdatePhoneValidate_Click(object sender, EventArgs e)
         {
             var cm = new Common();
-            cm.cache.Remove("ListPhoneData");
+            List<string> listPhone = new List<string>();
+            List<string> listPhoneValid = new List<string>();
+
+            foreach (ListViewItem selectedItem in lvDataFromExcel.Items)
+            {
+                listPhone.Add(selectedItem.SubItems[(int)numColPhoneNumber.Value].Text);
+            }
+
+            if (listPhone.Count > 0)
+            {
+                cm.cache.Remove("ListPhoneData");
+                var existingPhoneNumbers = cm.getListPhoneNumber(true);
+                if (existingPhoneNumbers != null && existingPhoneNumbers.Count > 0)
+                {
+                    foreach (string phoneNumber in listPhone)
+                    {
+                        if (!existingPhoneNumbers.Contains(phoneNumber))
+                        {
+                            listPhoneValid.Add(phoneNumber);
+                        }
+                    }
+                }
+                else
+                {
+                    listPhoneValid = listPhone;
+                }
+
+                if (listPhoneValid.Count > 0)
+                {
+                    int existNumber = ((existingPhoneNumbers != null && existingPhoneNumbers.Count > 0) ? existingPhoneNumbers.Count : 0);
+                    int total = existNumber + listPhoneValid.Count;
+
+                    cm.updatePhoneData(listPhoneValid, checkAppendPhone.Checked);
+                    MessageBox.Show("Cập nhật thêm " + listPhoneValid.Count.ToString() + " SĐT, trước đó có " + existNumber.ToString() + " số. Hiện tại là: " + total.ToString() + " số", "Ngon rồi!");
+                }
+                else
+                {
+                    MessageBox.Show("Không có số nào được cập nhật thêm mới vào", "Hừm!");
+                }
+            }
         }
     }
 }
