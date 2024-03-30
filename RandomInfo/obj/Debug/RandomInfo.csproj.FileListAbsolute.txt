@@ -52,3 +52,8 @@ D:\Project\RandomInfo\RandomInfo\obj\Debug\RandomInfo.csproj.Up2Date
 D:\Project\RandomInfo\RandomInfo\obj\Debug\RandomInfo.exe
 D:\Project\RandomInfo\RandomInfo\obj\Debug\RandomInfo.pdb
 D:\Project\RandomInfo\RandomInfo\obj\Debug\RandomInfo.Main.resources
+D:\Project\RandomInfo\RandomInfo\bin\Debug\ListLastName.txt
+D:\Project\RandomInfo\RandomInfo\bin\Debug\ListFirstName.txt
+D:\Project\RandomInfo\RandomInfo\bin\Debug\appsettings.json
+D:\Project\RandomInfo\RandomInfo\bin\Debug\credentialsAuToData.json
+D:\Project\RandomInfo\RandomInfo\bin\Debug\ListPhoneData.txt
