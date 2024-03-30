@@ -18,8 +18,7 @@ namespace RandomInfo
         {
 
             string fileName = "credentialsAuToData.json";
-            string currentDirectory = Directory.GetCurrentDirectory();
-            string credentialsPath = Path.Combine(currentDirectory, fileName);
+            string credentialsPath = new Common().getFilePath(fileName);
 
             // Chuỗi phạm vi truy cập (scope)
             string[] scopes = { SheetsService.Scope.Spreadsheets };

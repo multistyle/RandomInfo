@@ -4,18 +4,13 @@ using System.IO;
 
 namespace RandomInfo
 {
-    public static class AppSetting
+    public class AppSetting
     {
 
-        // Đường dẫn đến file thông tin xác thực (credentials) của Google Sheets API
-        static string fileName = "appsettings.json";
-
-        static string currentDirectory = Directory.GetCurrentDirectory();
-
         // Đường dẫn đến file appsettings.json
-        static string appSettingsPath = Path.Combine(currentDirectory, fileName);
+        public string appSettingsPath = new Common().getFilePath("appsettings.json");
 
-        public static void UpdateAppSetting(string key, string value)
+        public void UpdateAppSetting(string key, string value)
         {
             if (File.Exists(appSettingsPath))
             {
@@ -60,7 +55,7 @@ namespace RandomInfo
             }
         }
 
-        public static string GetAppSettingValue(string key)
+        public string GetAppSettingValue(string key)
         {
             if (File.Exists(appSettingsPath))
             {

@@ -10,6 +10,7 @@ using System.Linq;
 using System.Windows.Forms;
 using System.Xml.Linq;
 using static Google.Apis.Requests.BatchRequest;
+using static System.Net.WebRequestMethods;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using Color = System.Drawing.Color;
 
@@ -18,6 +19,8 @@ namespace RandomInfo
 {
     public partial class Main : Form
     {
+        AppSetting setting = new AppSetting();
+
         public Main()
         {
             InitializeComponent();
@@ -51,7 +54,9 @@ namespace RandomInfo
                 var lastName = cm.getRandomLastName(random);
                 var fistName = cm.getRandomFirstName(random);
                 var id = lastName + fistName + cm.getRandomBirthDate(random);
-                var data = new { Sort = i + 1, LastName = lastName, FirstName = fistName, Phone = cm.randomPhone(random, txtPrefixPhone.Text), ID = id.ToLower(), Pass = txtPass.Text };
+                string phoneNumber = cm.randomPhone(random, txtPrefixPhone.Text, chkValidatePhone.Checked);
+
+                var data = new { Sort = i + 1, LastName = lastName, FirstName = fistName, Phone = phoneNumber, ID = id.ToLower(), Pass = txtPass.Text };
 
                 var listItem = new ListViewItem(data.Sort.ToString());
                 listItem.SubItems.Add(data.Phone);
@@ -70,7 +75,6 @@ namespace RandomInfo
 
             lvData.MouseClick += ListViewMouseClick;
         }
-
 
         private void ListViewMouseClick(object sender, MouseEventArgs e)
         {
@@ -150,10 +154,13 @@ namespace RandomInfo
 
                     BatchUpdateValuesResponse response = gs.UpdateData(spreadsheetId, data);
 
-                    AppSetting.UpdateAppSetting(sheetName + "StartRow", rowIndex.ToString());
+                    setting.UpdateAppSetting(sheetName + "StartRow", rowIndex.ToString());
 
-                    MessageBox.Show("Vừa đẩy lên " + response.TotalUpdatedRows.ToString() + " bản ghi!", "Thành công rồi");
-
+                    MessageBox.Show("Vừa đẩy lên " + response.TotalUpdatedRows.ToString() + " bản ghi! Vào sheet: " + sheetName, "Thành công rồi");
+                    // Xóa tất cả cột
+                    lvDataFromExcel.Columns.Clear();
+                    // Xóa tất cả dữ liệu
+                    lvDataFromExcel.Items.Clear();
                 }
                 else
                 {
@@ -166,42 +173,48 @@ namespace RandomInfo
             }
         }
 
-
         private void frmMain_Load(object sender, EventArgs e)
         {
-            var countGenData = AppSetting.GetAppSettingValue("CountGenData");
-            var prefixPhone = AppSetting.GetAppSettingValue("PrefixPhone");
-            var passDefault = AppSetting.GetAppSettingValue("PassDefault");
-            var sheetName = AppSetting.GetAppSettingValue("SheetName");
-            var startRow = AppSetting.GetAppSettingValue(sheetName + "StartRow");
+            var countGenData = setting.GetAppSettingValue("CountGenData");
+            var prefixPhone = setting.GetAppSettingValue("PrefixPhone");
+            var passDefault = setting.GetAppSettingValue("PassDefault");
+            var sheetName = setting.GetAppSettingValue("SheetName");
+            var startRow = setting.GetAppSettingValue(sheetName + "StartRow");
+            var lastSyncDictionary = setting.GetAppSettingValue("LastSyncDictionary");
+            var checkSyncData = setting.GetAppSettingValue("CheckSyncData");
+            var checkValidatePhone = setting.GetAppSettingValue("CheckValidatePhone");
 
             numGenData.Value = string.IsNullOrEmpty(countGenData) ? 10 : int.Parse(countGenData);
             txtPrefixPhone.Text = !string.IsNullOrEmpty(prefixPhone) ? prefixPhone : "096;097;098";
             txtPass.Text = !string.IsNullOrEmpty(passDefault) ? passDefault : "12345678@Abc";
             txtSheetName.Text = !string.IsNullOrEmpty(sheetName) ? sheetName : "Data";
             numStartRow.Value = string.IsNullOrEmpty(startRow) ? 0 : int.Parse(startRow);
+            lbTimeUpdate.Text = string.IsNullOrEmpty(lastSyncDictionary) ? "Danh sách mặc định" : lastSyncDictionary;
+            chkSyncData.Checked = string.IsNullOrEmpty(checkSyncData) ? false : bool.Parse(checkSyncData);
+            chkValidatePhone.Checked = string.IsNullOrEmpty(checkValidatePhone) ? false : bool.Parse(checkValidatePhone);
 
+            txtFilePhoneNumber.Text = new Common().getFilePath("ListPhoneData.txt");
         }
 
         private void numGenData_ValueChanged(object sender, EventArgs e)
         {
-            AppSetting.UpdateAppSetting("CountGenData", numGenData.Value.ToString());
+            setting.UpdateAppSetting("CountGenData", numGenData.Value.ToString());
 
         }
 
         private void txtPrefixPhone_TextChanged(object sender, EventArgs e)
         {
-            AppSetting.UpdateAppSetting("PrefixPhone", txtPrefixPhone.Text);
+            setting.UpdateAppSetting("PrefixPhone", txtPrefixPhone.Text);
         }
 
         private void txtSheetName_TextChanged(object sender, EventArgs e)
         {
-            AppSetting.UpdateAppSetting("SheetName", txtSheetName.Text);
+            setting.UpdateAppSetting("SheetName", txtSheetName.Text);
         }
 
         private void txtPass_TextChanged(object sender, EventArgs e)
         {
-            AppSetting.UpdateAppSetting("PassDefault", txtPass.Text);
+            setting.UpdateAppSetting("PassDefault", txtPass.Text);
         }
 
         private void btnLoadDataFromExcel_Click(object sender, EventArgs e)
@@ -209,76 +222,101 @@ namespace RandomInfo
             // ID của bảng tính và tên trang tính cần cập nhật
             string spreadsheetId = txtLoadSheetID.Text;
             string sheetName = txtLoadSheetName.Text;
-            var rangeData = $"{sheetName}!A:Z";
+            var rangeData = $"{sheetName}!A{numFrom.Value}:Z";
+            string columnFilterName = "F";
+            string filterValue = txtDate.Text;
+
+            // Xử lý kết quả
+            // ...
+            if (numTo.Value > 0 && numTo.Value > numFrom.Value)
+            {
+                rangeData = $"{sheetName}!A{numFrom.Value}:Z{numTo.Value}";
+            }
+
+            //if (!string.IsNullOrEmpty(filterValue))
+            //{
+            //    // Áp dụng điều kiện lọc
+            //    string filterCondition = $"'{columnFilterName}=\"{filterValue}\"'";
+            //    rangeData += $"&{filterCondition}";
+            //}
+
             GoogleSheet gs = new GoogleSheet();
             Common cm = new Common();
 
-            if (string.IsNullOrEmpty(spreadsheetId))
+            if (cm.checkValidate(spreadsheetId, sheetName))
             {
-                MessageBox.Show("Nhập Sheet ID đi đã", "Ẩu thế?");
-                return;
-            }
-            else if (string.IsNullOrEmpty(sheetName))
-            {
-                MessageBox.Show("Nhập Sheet Name đi đã", "Ẩu thế?");
-                return;
-            }
+                // Xóa tất cả cột
+                lvDataFromExcel.Columns.Clear();
+                // Xóa tất cả dữ liệu
+                lvDataFromExcel.Items.Clear();
+                //lvDataFromExcel.CheckBoxes = true;
+                // Thiết lập kiểu xem của ListView (ví dụ: View.Details để hiển thị các cột)
+                lvDataFromExcel.View = View.Details;
+                lvDataFromExcel.FullRowSelect = true;
+                lvDataFromExcel.GridLines = true;
 
-            // Xóa tất cả cột
-            lvDataFromExcel.Columns.Clear();
-            // Xóa tất cả dữ liệu
-            lvDataFromExcel.Items.Clear();
-            lvDataFromExcel.CheckBoxes = true;
-            // Thiết lập kiểu xem của ListView (ví dụ: View.Details để hiển thị các cột)
-            lvDataFromExcel.View = View.Details;
-            lvDataFromExcel.FullRowSelect = true;
-            lvDataFromExcel.GridLines = true;
+                // Lấy giá trị từ phạm vi được chỉ định
+                var responseData = gs.getData(spreadsheetId, sheetName, rangeData);
 
-            // Lấy giá trị từ phạm vi được chỉ định
-            var responseData = gs.getData(spreadsheetId, sheetName, rangeData);
-
-            if (responseData != null && responseData.Values.Count > 0)
-            {
-                var values = responseData.Values;
-
-                var listViewItems = new List<ListViewItem>();
-
-                // Lấy tên cột từ dòng đầu tiên
-                var headerRow = values[0];
-
-                for (int i = 0; i < headerRow.Count; i++)
+                if (responseData != null && responseData.Values.Count > 0)
                 {
-                    lvDataFromExcel.Columns.Add(headerRow[i].ToString());
-                }
+                    var values = responseData.Values;
+                    var listViewItems = new List<ListViewItem>();
+                    int count = 0;
+                    // Thêm cột vào ListView
+                    lvDataFromExcel.Columns.Add("STT").Width = 50;
+                    lvDataFromExcel.Columns.Add("Họ").Width = 100;
+                    lvDataFromExcel.Columns.Add("Tên").Width = 100;
+                    lvDataFromExcel.Columns.Add("Số điện thoại").Width = 150;
+                    lvDataFromExcel.Columns.Add("ID").Width = 180;
+                    lvDataFromExcel.Columns.Add("Ngày tạo").Width = 120;
 
-                // Lấy dữ liệu từ các dòng sau
-                for (int i = 1; i < values.Count; i++)
-                {
-                    var dataRow = values[i];
-                    var listViewItem = new ListViewItem();
 
-                    listViewItem.Text = dataRow[0].ToString();
+                    //// Lấy tên cột từ dòng đầu tiên
+                    //var headerRow = values[0];
 
-                    for (int j = 1; j < dataRow.Count; j++)
+                    //for (int i = (int)numStartRow.Value; i < headerRow.Count; i++)
+                    //{
+                    //    lvDataFromExcel.Columns.Add(headerRow[i].ToString());
+                    //}
+
+                    // Lấy dữ liệu từ các dòng sau
+                    for (int i = 0; i < values.Count; i++)
                     {
-                        listViewItem.SubItems.Add(dataRow[j].ToString());
+                        var dataRow = values[i];
+
+                        if (!string.IsNullOrEmpty(filterValue))
+                        {
+                            if (!(dataRow[(int)numCreatedDate.Value].ToString() == filterValue))
+                            {
+                                continue;
+                            }
+                        }
+
+                        var listViewItem = new ListViewItem();
+                        listViewItem.Text = (i + 1).ToString();
+
+                        for (int j = 1; j < dataRow.Count; j++)
+                        {
+                            listViewItem.SubItems.Add(dataRow[j].ToString());
+                        }
+
+                        //listViewItem.Checked = true;
+                        count++;
+                        listViewItems.Add(listViewItem);
                     }
 
-                    listViewItem.Checked = true;
-                    listViewItems.Add(listViewItem);
+                    lvDataFromExcel.Items.AddRange(listViewItems.ToArray());
+
+                    //lvDataFromExcel.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
+
+                    // Đặt focus vào bản ghi đầu tiên
+                    cm.focusFirstRow(lvDataFromExcel);
+
+                    lvDataFromExcel.MouseClick += ListViewLoadMouseClick;
+
+                    MessageBox.Show("Lấy được " + count.ToString() + " bản ghi", "Ngon rồi!");
                 }
-
-                lvDataFromExcel.Items.AddRange(listViewItems.ToArray());
-
-                lvDataFromExcel.AutoResizeColumns(ColumnHeaderAutoResizeStyle.ColumnContent);
-
-                // Đặt focus vào bản ghi đầu tiên
-                cm.focusFirstRow(lvDataFromExcel);
-
-                lvDataFromExcel.MouseClick += ListViewLoadMouseClick;
-                
-                MessageBox.Show("Lấy được " + (responseData.Values.Count - 1).ToString() + " bản ghi", "Ngon rồi!");
-
             }
         }
 
@@ -286,6 +324,56 @@ namespace RandomInfo
         {
             Common cm = new Common();
             cm.ListViewMouseClick(lvDataFromExcel, e);
+        }
+
+        private void btnGetDictionary_Click(object sender, EventArgs e)
+        {
+            Common cm = new Common();
+            // ID của bảng tính và tên trang tính cần cập nhật
+            string spreadsheetId = txtLoadSheetID.Text;
+            string sheetName = txtDicSheet.Text;
+            bool result = false;
+            try
+            {
+                if (cm.checkValidate(spreadsheetId, sheetName))
+                {
+                    result = cm.getDictionaryData(spreadsheetId, sheetName, (int)numDicStartRow.Value, txtDicLastName.Text, txtDicFirstName.Text);
+                    if (result)
+                    {
+                        DateTime now = DateTime.Now;
+                        string formattedDateTime = "Cập nhật lúc: " + now.ToString("HH:mm:ss dd/MM/yyyy");
+                        lbTimeUpdate.Text = formattedDateTime;
+
+                        setting.UpdateAppSetting("LastSyncDictionary", formattedDateTime);
+
+                        MessageBox.Show("Cập nhật danh sách Họ và Tên ok!", "Ngon rồi!");
+                    }
+                    else
+                    {
+                        MessageBox.Show("Không cập nhật được rồi!", "Dở rồi!");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Lỗi cmnr");
+            }
+        }
+
+        private void chkValidatePhone_CheckedChanged(object sender, EventArgs e)
+        {
+            setting.UpdateAppSetting("CheckValidatePhone", chkValidatePhone.Checked.ToString());
+        }
+
+        private void chkSyncData_CheckedChanged(object sender, EventArgs e)
+        {
+            setting.UpdateAppSetting("CheckSyncData", chkSyncData.Checked.ToString());
+        }
+
+        private void btnUpdatePhoneValidate_Click(object sender, EventArgs e)
+        {
+            var cm = new Common();
+            cm.cache.Remove("ListPhoneData");
         }
     }
 }

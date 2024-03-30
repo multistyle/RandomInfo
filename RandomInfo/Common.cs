@@ -1,11 +1,10 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
+using System.IO;
 using System.Runtime.Caching;
 using System.Windows.Forms;
-using System.Xml.Linq;
+using Color = System.Drawing.Color;
 
 namespace RandomInfo
 {
@@ -13,13 +12,52 @@ namespace RandomInfo
     {
 
         // Khởi tạo bộ nhớ cache
-        private static MemoryCache cache = MemoryCache.Default;
+        public  MemoryCache cache = MemoryCache.Default;
+       public const string cacheFistKey = "ListFirstName";
+       public const string fistNamePath = "ListFirstName.txt";
+       public const string lastNamePath = "ListLastName.txt";
+       public const string cacheLastKey = "ListLastName";
+       public const string listPhoneDataFileName = "ListPhoneData.txt";
+       public const string keycachePhoneData = "ListPhoneData";
 
+        DateTimeOffset cacheTime = DateTimeOffset.MaxValue;
 
-        public string randomPhone(Random random, string prefixPhone)
+        public string getFilePath(string fileName)
         {
+            // Lấy đường dẫn của thư mục chứa mã nguồn của ứng dụng
+            string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
 
-            prefixPhone = !string.IsNullOrEmpty(prefixPhone.Trim()) ? prefixPhone : "096;097;098";
+            // Xây dựng đường dẫn tới file
+            return Path.Combine(baseDirectory, fileName);
+        }
+
+        public string randomPhone(Random random, string prefixPhone, bool validatePhone, int count = 100)
+        {
+            if (count == 0)
+            {
+                return "Không tìm thấy số điện thoại hợp lệ sau 100 lần kiểm tra.";
+            }
+
+            string phoneNumber = getPhone(random, prefixPhone);
+
+            if (!validatePhone)
+            {
+                return phoneNumber;
+            }
+            else
+            {
+                // Gọi đệ quy nếu số điện thoại đã tồn tại trong danh sách
+                if (!checkValidPhone(phoneNumber))
+                {
+                    return randomPhone(random, prefixPhone, validatePhone, count - 1);
+                }
+            }
+
+            return phoneNumber;
+        }
+
+        private string getPhone(Random random, string prefixPhone)
+        {
             string[] array = prefixPhone.Split(';');
             int randomIndex = random.Next(0, array.Length); // Lấy số ngẫu nhiên từ 0 đến (độ dài của mảng - 1)
 
@@ -27,337 +65,168 @@ namespace RandomInfo
             string number = random.Next(1000000, 10000000).ToString();
 
             string phone = prefix + number;
-            if (!checkValidPhone(phone))
-            {
-                randomPhone(random, prefixPhone);
-            }
-
             return phone;
-
         }
-
-        //string GenerateRandomPhoneNumber(Random random, string prefixPhone)
-        //{
-
-
-        //    //int randomIndex = new Random().Next(0, array.Length); // Lấy số ngẫu nhiên từ 0 đến (độ dài của mảng - 1)
-        //    //int randomElement = array[randomIndex]; // Truy cập vào phần tử có chỉ số ngẫu nhiên
-
-        //    //Console.WriteLine(randomElement);
-
-        //    //string prefix = random.Next(2) == 0 ? "097" : "096";
-        //    //string number = random.Next(10000000, 100000000).ToString();
-
-        //    //string phone = prefix + number;
-        //    //if (!checkValidPhone(phone))
-        //    //{
-        //    //    GenerateRandomPhoneNumber(random);
-        //    //}
-
-        //    //return phone;
-        //}
 
         public bool checkValidPhone(string phone)
         {
+            List<string> listPhoneData = new List<string>();
 
+            listPhoneData = (List<string>)cache.Get(keycachePhoneData);
+
+            if (listPhoneData == null || listPhoneData.Count == 0)
+            {
+                listPhoneData = ReadDataFromFile(getFilePath(listPhoneDataFileName));
+                // Lưu kết quả vào cache
+                // Kiểm tra nếu kết quả đã được lưu trong cache
+                if (cache.Contains(keycachePhoneData))
+                {
+                    cache.Set(keycachePhoneData, listPhoneData, cacheTime);
+                }
+                else
+                {
+                    cache.Add(keycachePhoneData, listPhoneData, cacheTime);
+                }
+            }
+            if (listPhoneData != null && listPhoneData.Count > 0)
+            {
+                return !listPhoneData.Contains(phone);
+            }
 
             return true;
         }
 
-        public bool getListPhoneIgnore()
+        public bool checkValidate(string spreadsheetId, string sheetName)
         {
+            if (string.IsNullOrEmpty(spreadsheetId))
+            {
+                MessageBox.Show("Nhập Sheet ID đi đã", "Ẩu thế?");
+                return false;
+            }
+            else if (string.IsNullOrEmpty(sheetName))
+            {
+                MessageBox.Show("Nhập Sheet Name đi đã", "Ẩu thế?");
+                return false;
+            }
+            return true;
+        }
 
+        public bool getDictionaryData(string spreadsheetId, string sheetName, int startRow, string columnLastName, string columnFistName)
+        {
+            GoogleSheet gs = new GoogleSheet();
+            string dataRange = $"{sheetName}!{columnLastName}:{columnFistName}";
+
+            List<string> listLastName = new List<string>();
+            List<string> listFirstName = new List<string>();
+
+            // Lấy giá trị từ phạm vi được chỉ định
+            var responseData = gs.getData(spreadsheetId, sheetName, dataRange);
+
+            if (responseData != null && responseData.Values.Count > startRow)
+            {
+                var values = responseData.Values;
+
+                for (int i = startRow; i < values.Count; i++)
+                {
+                    var item = values[i];
+                    if (item != null && item.Count > 0)
+                    {
+                        if (!string.IsNullOrEmpty(item[0].ToString()))
+                        {
+                            listLastName.Add(item[0].ToString());
+                        }
+                        if (item.Count > 1 && !string.IsNullOrEmpty(item[1].ToString()))
+                        {
+                            listFirstName.Add(item[1].ToString());
+                        }
+                    }
+                }
+
+                // Lưu dữ liệu vào tệp tin
+                WriteDataToFile(listFirstName, getFilePath(fistNamePath));
+                WriteDataToFile(listLastName, getFilePath(lastNamePath));
+
+                // Lưu kết quả vào cache
+                // Kiểm tra nếu kết quả đã được lưu trong cache
+                if (cache.Contains(cacheLastKey))
+                {
+                    cache.Set(cacheLastKey, listLastName, cacheTime);
+                }
+                else
+                {
+                    cache.Add(cacheLastKey, listLastName, cacheTime);
+                }
+
+                if (cache.Contains(cacheFistKey))
+                {
+                    cache.Set(cacheFistKey, listFirstName, cacheTime);
+                }
+                else
+                {
+                    cache.Add(cacheFistKey, listFirstName, cacheTime);
+                }
+            }
+            else
+            {
+                return false;
+            }
 
             return true;
-
         }
 
         public string getRandomLastName(Random random)
         {
+            List<string> listLastName = new List<string>();
 
-            string[] listLastName =
-{
-    "Bui",
-    "Cao",
-    "Chau",
-    "Dinh",
-    "Doan",
-    "Dong",
-    "Duong",
-    "Ho",
-    "Huynh",
-    "Lam",
-    "Le",
-    "Luong",
-    "Ly",
-    "Ma",
-    "Mai",
-    "Nguyen",
-    "Ngo",
-    "Nguyen",
-    "Pham",
-    "Phan",
-    "Phung",
-    "Quach",
-    "Ta",
-    "Thai",
-    "Than",
-    "Thach",
-    "Thieu",
-    "Thuy",
-    "Tong",
-    "Tran",
-    "Trinh",
-    "Truong",
-    "Vo",
-    "Vuong",
-};
+            listLastName = (List<string>)cache.Get(cacheLastKey);
 
-            //List<string> lastNameList = new List<string>(listLastName);
-            //// Lưu trữ danh sách vào cache
-            //cache.Set("LastNameList", lastNameList, DateTimeOffset.MaxValue);
-
-            //string spreadsheetId = "your-spreadsheet-id";
-            //string sheetName = "your-sheet-name";
-            //string column = "B";
-
-            //// Khởi tạo dịch vụ Google Sheets
-            //var credential = GoogleCredential.FromFile("path-to-your-credentials-file.json")
-            //    .CreateScoped(SheetsService.Scope.Spreadsheets);
-            //var service = new SheetsService(new BaseClientService.Initializer()
-            //{
-            //    HttpClientInitializer = credential
-            //});
-
-            //// Tạo phạm vi để chỉ định sheet và cột cụ thể
-            //string range = $"{sheetName}!{column}:{column}";
-
-            //// Lấy giá trị từ phạm vi đã chỉ định
-            //var request = service.Spreadsheets.Values.Get(spreadsheetId, range);
-            //var response = request.Execute();
-            //var values = response.Values;
-
-            //// Kiểm tra và xử lý dữ liệu lấy được
-            //if (values != null && values.Count > 0)
-            //{
-            //    List<string> columnData = new List<string>();
-            //    foreach (var row in values)
-            //    {
-            //        if (row.Count > 0)
-            //        {
-            //            string cellValue = row[0].ToString();
-            //            columnData.Add(cellValue);
-            //        }
-            //    }
-
-            //    // Sử dụng dữ liệu của cột cụ thể
-            //    // ...
-            //}
-            //// Lấy dữ liệu từ cache
-            //var data = cache.Get(key);
-
-            return listLastName[random.Next(listLastName.Length)];
-
-
+            if (listLastName == null || listLastName.Count == 0)
+            {
+                listLastName = ReadDataFromFile(getFilePath(lastNamePath));
+            }
+            if (listLastName != null && listLastName.Count > 0)
+            {
+                var randomIndex = random.Next(0, listLastName.Count);
+                return listLastName[randomIndex].ToString();
+            }
+            else return string.Empty;
         }
 
         public string getRandomFirstName(Random random)
         {
+            List<string> listFirstName = new List<string>();
 
-            string[] listFirstName = {
-    "An",
-    "Binh",
-    "Cuong",
-    "Dat",
-    "Hai",
-    "Hieu",
-    "Hoang",
-    "Hung",
-    "Hung",
-    "Khanh",
-    "Kien",
-    "Lam",
-    "Long",
-    "Minh",
-    "Nam",
-    "Nghia",
-    "Ngoc",
-    "Phong",
-    "Phuc",
-    "Quan",
-    "Quang",
-    "Sang",
-    "Son",
-    "Tuan",
-    "Tung",
-    "Tu",
-    "Van",
-    "Vinh",
-    "Vu",
-    "Xuan",
-    "Yen",
-    "Anh",
-    "Bao",
-    "Bien",
-    "Buu",
-    "Canh",
-    "Chau",
-    "Chi",
-    "Chinh",
-    "Chuong",
-    "Dai",
-    "Danh",
-    "Dinh",
-    "Do",
-    "Du",
-    "Duc",
-    "Dung",
-    "Gia",
-    "Giang",
-    "Giao",
-    "Ha",
-    "Hanh",
-    "Hiep",
-    "Hoa",
-    "Hoi",
-    "Hong",
-    "Huong",
-    "Huy",
-    "Khai",
-    "Khan",
-    "Khoa",
-    "Khoi",
-    "Khuong",
-    "Kiet",
-    "Lan",
-    "Lien",
-    "Lieu",
-    "Linh",
-    "Loc",
-    "Luan",
-    "Luc",
-    "Luu",
-    "Manh",
-    "Mau",
-    "Minh",
-    "My",
-    "Nhan",
-    "Nhat",
-    "Ninh",
-    "Nhuan",
-    "Phat",
-    "Phu",
-    "Phuc",
-    "Phung",
-    "Quoc",
-    "Quy",
-    "Quyen",
-    "Quyet",
-    "Quynh",
-    "Sau",
-    "Sinh",
-    "Sung",
-    "Tai",
-    "Tam",
-    "Tan",
-    "Tham",
-    "Thang",
-    "Thao",
-    "Thau",
-    "Thinh",
-    "Tho",
-    "Thong",
-    "Thuan",
-    "Thuy",
-    "Thy",
-    "Tien",
-    "Tinh",
-    "Toan",
-    "Tong",
-    "Tran",
-    "Tri",
-    "Trinh",
-    "Trong",
-    "Trung",
-    "Tuyen",
-    "Ty",
-    "Uy",
-    "Vang",
-    "Vinh",
-    "Vui",
-    "Vu",
-    "Xuan",
-    "Y",
-    "Anh",
-    "Bach",
-    "Bao",
-    "Bich",
-    "Binh",
-    "Cam",
-    "Can",
-    "Chau",
-    "Chi",
-    "Diep",
-    "Diem",
-    "Dung",
-    "Giang",
-    "Giao",
-    "Ha",
-    "Han",
-    "Hanh",
-    "Hoa",
-    "Huong",
-    "Khanh",
-    "Kieu",
-    "Kim",
-    "Lam",
-    "Lan",
-    "Lien",
-    "Lieu",
-    "Linh",
-    "Loan",
-    "Luyen",
-    "Ly",
-    "Mai",
-    "Minh",
-    "My",
-    "Ngan",
-    "Ngoc",
-    "Nhan",
-    "Nhi",
-    "Nhung",
-    "Oanh",
-    "Phuong",
-    "Quynh",
-    "Suong",
-    "Tham",
-    "Thao",
-    "Thien",
-    "Thu",
-    "Thuy",
-    "Tien",
-    "Tram",
-    "Trang",
-    "Trinh",
-    "Truc",
-    "Tuyet",
-    "Uyen",
-    "Van",
-    "Vi",
-    "Vinh",
-    "Xuan",
-    "Yen"
-            // Thêm tên tiếng Việt không dấu khác nếu cần
-        };
+            listFirstName = (List<string>)cache.Get(cacheFistKey);
 
-            return listFirstName[random.Next(listFirstName.Length)];
+            if (listFirstName == null || listFirstName.Count == 0)
+            {
+                listFirstName = ReadDataFromFile(getFilePath(fistNamePath));
+            }
+            if (listFirstName != null && listFirstName.Count > 0)
+            {
+                var randomIndex = random.Next(0, listFirstName.Count);
+                return listFirstName[randomIndex].ToString();
+            }
+            else return string.Empty;
         }
+
+        // Hàm ghi dữ liệu vào file (ghi đè toàn bộ nội dung file cũ)
+        public void WriteDataToFile(List<string> data, string filePath)
+        {
+            string content = string.Join(Environment.NewLine, data);
+            File.WriteAllText(filePath, content);
+        }
+
+        // Hàm đọc dữ liệu từ tệp tin văn bản và gán vào cache
+        public List<string> ReadDataFromFile(string filePath)
+        {
+            return new List<string>(File.ReadAllLines(filePath));
+        }
+
         public string getRandomBirthDate(Random random)
         {
-
             DateTime dateOfBirth = GenerateRandomDate(random);
             return dateOfBirth.ToString("ddMMyy");
-
         }
 
         DateTime GenerateRandomDate(Random random)
