@@ -93,6 +93,8 @@
             this.label24 = new System.Windows.Forms.Label();
             this.checkAppendPhone = new System.Windows.Forms.CheckBox();
             this.label22 = new System.Windows.Forms.Label();
+            this.chkUpdatePhone = new System.Windows.Forms.CheckBox();
+            this.label23 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.numGenData)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numStartRow)).BeginInit();
             this.tbLoadData.SuspendLayout();
@@ -108,10 +110,10 @@
             // btnUpdate
             // 
             this.btnUpdate.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnUpdate.Location = new System.Drawing.Point(667, 510);
+            this.btnUpdate.Location = new System.Drawing.Point(706, 510);
             this.btnUpdate.Margin = new System.Windows.Forms.Padding(2);
             this.btnUpdate.Name = "btnUpdate";
-            this.btnUpdate.Size = new System.Drawing.Size(130, 34);
+            this.btnUpdate.Size = new System.Drawing.Size(91, 34);
             this.btnUpdate.TabIndex = 0;
             this.btnUpdate.Text = "Cập nhật";
             this.btnUpdate.UseVisualStyleBackColor = true;
@@ -133,12 +135,17 @@
             // 
             this.numGenData.Location = new System.Drawing.Point(570, 106);
             this.numGenData.Margin = new System.Windows.Forms.Padding(2);
+            this.numGenData.Maximum = new decimal(new int[] {
+            500,
+            0,
+            0,
+            0});
             this.numGenData.Name = "numGenData";
             this.numGenData.Size = new System.Drawing.Size(89, 20);
             this.numGenData.TabIndex = 12;
             this.numGenData.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             this.numGenData.Value = new decimal(new int[] {
-            10,
+            5,
             0,
             0,
             0});
@@ -231,7 +238,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(308, 504);
+            this.label3.Location = new System.Drawing.Point(348, 502);
             this.label3.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(28, 13);
@@ -241,7 +248,7 @@
             // 
             // txtSTT
             // 
-            this.txtSTT.Location = new System.Drawing.Point(310, 520);
+            this.txtSTT.Location = new System.Drawing.Point(350, 518);
             this.txtSTT.Margin = new System.Windows.Forms.Padding(2);
             this.txtSTT.Name = "txtSTT";
             this.txtSTT.Size = new System.Drawing.Size(54, 20);
@@ -251,7 +258,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(368, 505);
+            this.label4.Location = new System.Drawing.Point(408, 503);
             this.label4.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(21, 13);
@@ -261,7 +268,7 @@
             // 
             // txtLastName
             // 
-            this.txtLastName.Location = new System.Drawing.Point(370, 521);
+            this.txtLastName.Location = new System.Drawing.Point(410, 519);
             this.txtLastName.Margin = new System.Windows.Forms.Padding(2);
             this.txtLastName.Name = "txtLastName";
             this.txtLastName.Size = new System.Drawing.Size(54, 20);
@@ -271,7 +278,7 @@
             // Tên
             // 
             this.Tên.AutoSize = true;
-            this.Tên.Location = new System.Drawing.Point(426, 505);
+            this.Tên.Location = new System.Drawing.Point(466, 503);
             this.Tên.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.Tên.Name = "Tên";
             this.Tên.Size = new System.Drawing.Size(26, 13);
@@ -281,7 +288,7 @@
             // 
             // txtFirstName
             // 
-            this.txtFirstName.Location = new System.Drawing.Point(428, 521);
+            this.txtFirstName.Location = new System.Drawing.Point(468, 519);
             this.txtFirstName.Margin = new System.Windows.Forms.Padding(2);
             this.txtFirstName.Name = "txtFirstName";
             this.txtFirstName.Size = new System.Drawing.Size(54, 20);
@@ -291,7 +298,7 @@
             // lbsdt
             // 
             this.lbsdt.AutoSize = true;
-            this.lbsdt.Location = new System.Drawing.Point(484, 504);
+            this.lbsdt.Location = new System.Drawing.Point(524, 502);
             this.lbsdt.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.lbsdt.Name = "lbsdt";
             this.lbsdt.Size = new System.Drawing.Size(29, 13);
@@ -301,7 +308,7 @@
             // 
             // txtPhone
             // 
-            this.txtPhone.Location = new System.Drawing.Point(486, 520);
+            this.txtPhone.Location = new System.Drawing.Point(526, 518);
             this.txtPhone.Margin = new System.Windows.Forms.Padding(2);
             this.txtPhone.Name = "txtPhone";
             this.txtPhone.Size = new System.Drawing.Size(54, 20);
@@ -311,7 +318,7 @@
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(544, 504);
+            this.label8.Location = new System.Drawing.Point(584, 502);
             this.label8.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(18, 13);
@@ -321,7 +328,7 @@
             // 
             // txtID
             // 
-            this.txtID.Location = new System.Drawing.Point(546, 520);
+            this.txtID.Location = new System.Drawing.Point(586, 518);
             this.txtID.Margin = new System.Windows.Forms.Padding(2);
             this.txtID.Name = "txtID";
             this.txtID.Size = new System.Drawing.Size(54, 20);
@@ -331,7 +338,7 @@
             // label9
             // 
             this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(602, 504);
+            this.label9.Location = new System.Drawing.Point(642, 502);
             this.label9.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(50, 13);
@@ -341,7 +348,7 @@
             // 
             // txtCreateDate
             // 
-            this.txtCreateDate.Location = new System.Drawing.Point(604, 520);
+            this.txtCreateDate.Location = new System.Drawing.Point(644, 518);
             this.txtCreateDate.Margin = new System.Windows.Forms.Padding(2);
             this.txtCreateDate.Name = "txtCreateDate";
             this.txtCreateDate.Size = new System.Drawing.Size(54, 20);
@@ -351,20 +358,20 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(207, 504);
+            this.label6.Location = new System.Drawing.Point(276, 502);
             this.label6.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(93, 13);
+            this.label6.Size = new System.Drawing.Size(68, 13);
             this.label6.TabIndex = 33;
-            this.label6.Text = "Dòng thêm dữ liệu";
+            this.label6.Text = "Thêm từ đâu";
             this.label6.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
             // numStartRow
             // 
-            this.numStartRow.Location = new System.Drawing.Point(209, 521);
+            this.numStartRow.Location = new System.Drawing.Point(279, 519);
             this.numStartRow.Margin = new System.Windows.Forms.Padding(2);
             this.numStartRow.Name = "numStartRow";
-            this.numStartRow.Size = new System.Drawing.Size(91, 20);
+            this.numStartRow.Size = new System.Drawing.Size(61, 20);
             this.numStartRow.TabIndex = 34;
             this.numStartRow.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
@@ -401,6 +408,8 @@
             // 
             // tabPage1
             // 
+            this.tabPage1.Controls.Add(this.label23);
+            this.tabPage1.Controls.Add(this.chkUpdatePhone);
             this.tabPage1.Controls.Add(this.chkSyncData);
             this.tabPage1.Controls.Add(this.chkValidatePhone);
             this.tabPage1.Controls.Add(this.label15);
@@ -721,7 +730,7 @@
             // chkSyncData
             // 
             this.chkSyncData.AutoSize = true;
-            this.chkSyncData.Location = new System.Drawing.Point(17, 526);
+            this.chkSyncData.Location = new System.Drawing.Point(16, 521);
             this.chkSyncData.Name = "chkSyncData";
             this.chkSyncData.Size = new System.Drawing.Size(152, 17);
             this.chkSyncData.TabIndex = 52;
@@ -864,6 +873,30 @@
             this.label22.TabIndex = 54;
             this.label22.TextAlign = System.Drawing.ContentAlignment.TopCenter;
             // 
+            // chkUpdatePhone
+            // 
+            this.chkUpdatePhone.AutoSize = true;
+            this.chkUpdatePhone.Checked = true;
+            this.chkUpdatePhone.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.chkUpdatePhone.Location = new System.Drawing.Point(174, 521);
+            this.chkUpdatePhone.Name = "chkUpdatePhone";
+            this.chkUpdatePhone.Size = new System.Drawing.Size(105, 17);
+            this.chkUpdatePhone.TabIndex = 53;
+            this.chkUpdatePhone.Text = "Nếu chưa tồn tại";
+            this.chkUpdatePhone.UseVisualStyleBackColor = true;
+            this.chkUpdatePhone.CheckedChanged += new System.EventHandler(this.chkUpdatePhone_CheckedChanged);
+            // 
+            // label23
+            // 
+            this.label23.AutoSize = true;
+            this.label23.Location = new System.Drawing.Point(171, 505);
+            this.label23.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
+            this.label23.Name = "label23";
+            this.label23.Size = new System.Drawing.Size(99, 13);
+            this.label23.TabIndex = 54;
+            this.label23.Text = "Thêm SĐT vào File";
+            this.label23.TextAlign = System.Drawing.ContentAlignment.TopCenter;
+            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -958,6 +991,8 @@
         private System.Windows.Forms.Label label24;
         private System.Windows.Forms.CheckBox checkAppendPhone;
         private System.Windows.Forms.Label label22;
+        private System.Windows.Forms.CheckBox chkUpdatePhone;
+        private System.Windows.Forms.Label label23;
     }
 }
 

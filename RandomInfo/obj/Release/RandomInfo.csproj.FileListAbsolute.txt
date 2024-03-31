@@ -56,3 +56,4 @@ D:\Project\RandomInfo\RandomInfo\obj\Release\RandomInfo.csproj.CoreCompileInputs
 D:\Project\RandomInfo\RandomInfo\obj\Release\RandomInfo.csproj.Up2Date
 D:\Project\RandomInfo\RandomInfo\obj\Release\RandomInfo.exe
 D:\Project\RandomInfo\RandomInfo\obj\Release\RandomInfo.pdb
+D:\Project\RandomInfo\RandomInfo\bin\Release\ListPhoneData.txt

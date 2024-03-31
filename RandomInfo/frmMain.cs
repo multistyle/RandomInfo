@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Xml.Linq;
 using static Google.Apis.Requests.BatchRequest;
@@ -91,10 +92,18 @@ namespace RandomInfo
                     // ID của bảng tính và tên trang tính cần cập nhật
                     string spreadsheetId = txtSpreadsheetId.Text;
                     string sheetName = txtSheetName.Text;
+                    string sheetNameSummary = "Tổng hợp";
                     GoogleSheet gs = new GoogleSheet();
+                    GoogleSheet sheet = new GoogleSheet();
+
+                    List<string> listPhone = new List<string>();
+
                     // Chuẩn bị dữ liệu cần cập nhật
                     List<ValueRange> data = new List<ValueRange>();
+                    List<ValueRange> dataSummary = new List<ValueRange>();
+
                     decimal rowIndex = numStartRow.Value;
+                    int startRowSummary = 1;
 
                     if (numStartRow.Value == 0)
                     {
@@ -108,6 +117,17 @@ namespace RandomInfo
                     }
                     rowIndex = rowIndex == 0 ? 1 : rowIndex;
 
+                    if (chkSyncData.Checked)
+                    {
+                        var rangeData = $"{sheetNameSummary}!A:H";
+                        // Lấy giá trị từ phạm vi được chỉ định
+                        var responseData = sheet.getData(spreadsheetId, sheetNameSummary, rangeData);
+                        if (responseData != null && responseData.Values != null && responseData.Values.Count > 0)
+                        {
+                            startRowSummary = responseData.Values.Count + 1;
+                        }
+                    }
+
                     // Các tên cột tương ứng trong Google Sheets
                     string[] columnNames = { txtSTT.Text, txtPhone.Text, txtLastName.Text, txtFirstName.Text, txtID.Text, txtCreateDate.Text };
 
@@ -116,6 +136,8 @@ namespace RandomInfo
                     {
                         // Tạo danh sách các giá trị của từng bản ghi
                         List<object> rowValues = new List<object>();
+
+                        listPhone.Add(selectedItem.SubItems[1].Text);
 
                         for (int i = 0; i < columnNames.Length; i++)
                         {
@@ -133,6 +155,15 @@ namespace RandomInfo
                                 value = DateTime.Now.ToString("dd/MM/yyyy");
                             }
 
+                            if (chkSyncData.Checked)
+                            {
+                                dataSummary.Add(new ValueRange
+                                {
+                                    Range = $"{sheetNameSummary}!{columnName}{startRowSummary}:{columnName}{startRowSummary}",
+                                    Values = new List<IList<object>> { new List<object> { value } }
+                                });
+                            }
+
                             data.Add(new ValueRange
                             {
                                 Range = range,
@@ -140,16 +171,18 @@ namespace RandomInfo
                             });
                         }
 
-                        // Tạo ValueRange cho từng bản ghi
-                        ValueRange valueRange = new ValueRange
+                        //Thêm cột sheetName nếu có check đẩy tổng hợp
+                        if (chkSyncData.Checked)
                         {
-                            Range = $"{sheetName}!A{rowIndex}:F{rowIndex}",
-                            Values = new List<IList<object>> { rowValues }
-                        };
-
-                        data.Add(valueRange);
-
+                            string range = $"{sheetNameSummary}!G{startRowSummary}:G{startRowSummary}";
+                            dataSummary.Add(new ValueRange
+                            {
+                                Range = range,
+                                Values = new List<IList<object>> { new List<object> { sheetName } }
+                            });
+                        }
                         rowIndex++; // Tăng chỉ số hàng
+                        startRowSummary++;
                     }
 
                     BatchUpdateValuesResponse response = gs.UpdateData(spreadsheetId, data);
@@ -161,6 +194,43 @@ namespace RandomInfo
                     lvDataFromExcel.Columns.Clear();
                     // Xóa tất cả dữ liệu
                     lvDataFromExcel.Items.Clear();
+
+                    try
+                    {
+                        if (chkSyncData.Checked)
+                        {
+                            // Khởi tạo và chạy một Task riêng
+                            Task.Run(() =>
+                        {
+                            //Đẩy lên tổng hợp
+                            sheet.UpdateData(spreadsheetId, dataSummary);
+                            MessageBox.Show("Đẩy lên dữ liệu vào sheet " + sheetNameSummary + " thành công.", "Ngon rồi!");
+
+                        });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message, "Tổng hợp - Lỗi cmnr");
+                    }
+
+                    try
+                    {
+                        if (chkUpdatePhone.Checked)
+                        {
+                            // Khởi tạo và chạy một Task riêng
+                            Task.Run(() =>
+                            {
+                                // Cập nhật số điện thoại
+                                updatePhoneNumber(listPhone);
+
+                            });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message, "Cập nhật số điện thoại - Lỗi cmnr");
+                    }
                 }
                 else
                 {
@@ -183,6 +253,7 @@ namespace RandomInfo
             var lastSyncDictionary = setting.GetAppSettingValue("LastSyncDictionary");
             var checkSyncData = setting.GetAppSettingValue("CheckSyncData");
             var checkValidatePhone = setting.GetAppSettingValue("CheckValidatePhone");
+            var checkUpdatePhoneData = setting.GetAppSettingValue("CheckUpdatePhoneData");
 
             numGenData.Value = string.IsNullOrEmpty(countGenData) ? 10 : int.Parse(countGenData);
             txtPrefixPhone.Text = !string.IsNullOrEmpty(prefixPhone) ? prefixPhone : "096;097;098";
@@ -192,6 +263,7 @@ namespace RandomInfo
             lbTimeUpdate.Text = string.IsNullOrEmpty(lastSyncDictionary) ? "Danh sách mặc định" : lastSyncDictionary;
             chkSyncData.Checked = string.IsNullOrEmpty(checkSyncData) ? false : bool.Parse(checkSyncData);
             chkValidatePhone.Checked = string.IsNullOrEmpty(checkValidatePhone) ? false : bool.Parse(checkValidatePhone);
+            chkUpdatePhone.Checked = string.IsNullOrEmpty(checkUpdatePhoneData) ? false : bool.Parse(checkUpdatePhoneData);
 
             txtFilePhoneNumber.Text = new Common().getFilePath("ListPhoneData.txt");
         }
@@ -370,11 +442,14 @@ namespace RandomInfo
             setting.UpdateAppSetting("CheckSyncData", chkSyncData.Checked.ToString());
         }
 
+        private void chkUpdatePhone_CheckedChanged(object sender, EventArgs e)
+        {
+            setting.UpdateAppSetting("CheckUpdatePhoneData", chkUpdatePhone.Checked.ToString());
+        }
         private void btnUpdatePhoneValidate_Click(object sender, EventArgs e)
         {
             var cm = new Common();
             List<string> listPhone = new List<string>();
-            List<string> listPhoneValid = new List<string>();
 
             foreach (ListViewItem selectedItem in lvDataFromExcel.Items)
             {
@@ -383,36 +458,47 @@ namespace RandomInfo
 
             if (listPhone.Count > 0)
             {
-                cm.cache.Remove("ListPhoneData");
-                var existingPhoneNumbers = cm.getListPhoneNumber(true);
-                if (existingPhoneNumbers != null && existingPhoneNumbers.Count > 0)
-                {
-                    foreach (string phoneNumber in listPhone)
-                    {
-                        if (!existingPhoneNumbers.Contains(phoneNumber))
-                        {
-                            listPhoneValid.Add(phoneNumber);
-                        }
-                    }
-                }
-                else
-                {
-                    listPhoneValid = listPhone;
-                }
-
-                if (listPhoneValid.Count > 0)
-                {
-                    int existNumber = ((existingPhoneNumbers != null && existingPhoneNumbers.Count > 0) ? existingPhoneNumbers.Count : 0);
-                    int total = existNumber + listPhoneValid.Count;
-
-                    cm.updatePhoneData(listPhoneValid, checkAppendPhone.Checked);
-                    MessageBox.Show("Cập nhật thêm " + listPhoneValid.Count.ToString() + " SĐT, trước đó có " + existNumber.ToString() + " số. Hiện tại là: " + total.ToString() + " số", "Ngon rồi!");
-                }
-                else
-                {
-                    MessageBox.Show("Không có số nào được cập nhật thêm mới vào", "Hừm!");
-                }
+                updatePhoneNumber(listPhone);
             }
         }
+
+        private void updatePhoneNumber(List<string> listPhone)
+        {
+            var cm = new Common();
+
+            List<string> listPhoneValid = new List<string>();
+            var existingPhoneNumbers = cm.getListPhoneNumber(true);
+
+            if (existingPhoneNumbers != null && existingPhoneNumbers.Count > 0)
+            {
+                foreach (string phoneNumber in listPhone)
+                {
+                    if (!existingPhoneNumbers.Contains(phoneNumber))
+                    {
+                        listPhoneValid.Add(phoneNumber);
+                    }
+                }
+            }
+            else
+            {
+                listPhoneValid = listPhone;
+            }
+
+            if (listPhoneValid.Count > 0)
+            {
+                cm.cache.Remove("ListPhoneData");
+
+                int existNumber = ((existingPhoneNumbers != null && existingPhoneNumbers.Count > 0) ? existingPhoneNumbers.Count : 0);
+                int total = existNumber + listPhoneValid.Count;
+
+                cm.updatePhoneData(listPhoneValid, checkAppendPhone.Checked);
+                MessageBox.Show("Cập nhật thêm " + listPhoneValid.Count.ToString() + " SĐT, trước đó có " + existNumber.ToString() + " số. Hiện tại là: " + total.ToString() + " số", "Ngon rồi!");
+            }
+            else
+            {
+                MessageBox.Show("Không có số nào được cập nhật thêm mới vào", "Hừm!");
+            }
+        }
+
     }
 }
